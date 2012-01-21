@@ -109,6 +109,7 @@ class Mpd
 
 			// Commands that do not return data.
 		case 'consume':
+		case 'crossfade':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
@@ -253,6 +254,6 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-var_dump( $m->consume(0) );
+var_dump( $m->crossfade(2) );
 //while( $r = $m->playlistinfo ) var_dump( $r);
 
