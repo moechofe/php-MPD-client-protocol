@@ -114,6 +114,7 @@ class Mpd
 		case 'mixrampdelay':
 		case 'random':
 		case 'repeat':
+		case 'setvol':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
@@ -258,6 +259,6 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-var_dump( $m->crossfade(2) );
+var_dump( $m->setvol(100) );
 //while( $r = $m->playlistinfo ) var_dump( $r);
 
