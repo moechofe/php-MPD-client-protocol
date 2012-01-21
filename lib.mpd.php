@@ -19,9 +19,15 @@ class Mpd
 	private $pass = null;
 
 	private $con = null; // socket resource
-	private $ver = null; // server version
+
+	private $server_version = false;
 
 	private $command_sent = false;
+
+	// }}}
+	// {{{ getServerVersion
+
+	function getServerVersion() { return $this->server_version; }
 
 	// }}}
 	// {{{ __construct, __get, __set
@@ -125,7 +131,7 @@ class Mpd
 		}
 
 		if( ($this->command_sent=true) and ! $this->untilOK($o) ) throw new ProtocolException;
-		if( preg_match('/([\d\.]+)$/', $o, $m) ) $this->ver = $m[1];
+		if( preg_match('/([\d\.]+)$/', $o, $m) ) $this->server_version = $m[1];
 	}
 
 	function doClose()
