@@ -2,6 +2,8 @@
 namespace qad\mpd;
 use UnexpectedValueException, RuntimeException, InvalidArgumentException;
 
+// {{{ ProtocolException, CommandException
+
 class ProtocolException extends UnexpectedValueException
 {
 	function __construct($msg='FAIL at decoding the MDP protocol. n00b!',Exception $e=null)
@@ -23,6 +25,8 @@ class CommandException extends InvalidArgumentException
 		else throw new ProtocolException;
 	}
 }
+
+// }}}
 
 class Mpd
 {
@@ -98,7 +102,8 @@ class Mpd
 	{
 		assert('is_string($member)');
 		assert('is_array($args)');
-		assert('array_filter($args,"is_string")');
+		assert('array_filter($args,"is_scalar")');
+		$args = array_map('strval',$args);
 		switch(strtolower($member))
 		{
 
@@ -248,6 +253,6 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-var_dump( $m->consume('merde') );
+var_dump( $m->consume(0) );
 //while( $r = $m->playlistinfo ) var_dump( $r);
 
