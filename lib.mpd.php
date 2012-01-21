@@ -116,12 +116,14 @@ class Mpd
 		case 'repeat':
 		case 'setvol':
 		case 'single':
+		case 'replay_gain_mode':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
 
 			// Commands that return one array of data.
 		case 'idle':
+		case 'replay_gain_status':
 			if( $this->sendCommand(strtolower($member),$args) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
