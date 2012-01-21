@@ -112,6 +112,8 @@ class Mpd
 		case 'crossfade':
 		case 'mixrampdb':
 		case 'mixrampdelay':
+		case 'random':
+		case 'repeat':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
