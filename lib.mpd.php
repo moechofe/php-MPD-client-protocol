@@ -1,5 +1,5 @@
 <?php
-namespace app\mpd;
+namespace qad\mpd;
 use UnexpectedValueException, RuntimeException;
 
 class ProtocolException extends UnexpectedValueException
@@ -53,6 +53,7 @@ class Mpd
 		case 'status':
 		case 'currentsong':
 		case 'idle':
+		case 'stats':
 			if( $this->sendCommand(strtolower($member)) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
@@ -222,6 +223,6 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-var_dump( $m->idle('player') );
+var_dump( $m->stats );
 //while( $r = $m->playlistinfo ) var_dump( $r);
 
