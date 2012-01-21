@@ -115,6 +115,7 @@ class Mpd
 		case 'random':
 		case 'repeat':
 		case 'setvol':
+		case 'single':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
