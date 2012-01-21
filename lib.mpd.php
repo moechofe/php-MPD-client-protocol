@@ -110,6 +110,8 @@ class Mpd
 			// Commands that do not return data.
 		case 'consume':
 		case 'crossfade':
+		case 'mixrampdb':
+		case 'mixrampdelay':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
