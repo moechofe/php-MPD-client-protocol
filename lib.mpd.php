@@ -1,12 +1,26 @@
 <?php
 namespace qad\mpd;
-use UnexpectedValueException, RuntimeException;
+use UnexpectedValueException, RuntimeException, InvalidArgumentException;
 
 class ProtocolException extends UnexpectedValueException
 {
 	function __construct($msg='FAIL at decoding the MDP protocol. n00b!',Exception $e=null)
 	{
 		parent::__construct($msg,11,$e);
+	}
+}
+
+class CommandException extends InvalidArgumentException
+{
+	function __construct($line,Exception $e=null)
+	{
+		if( preg_match('/^ACK \[(\d+)@(\d+)\] \{(\w+)\} (.*)$/', $line, $m) )
+		{
+			$this->file = $m[3];
+			$this->line = (integer)$m[2];
+			parent::__construct($m[4],$m[1],$e);
+		}
+		else throw new ProtocolException;
 	}
 }
 
@@ -89,10 +103,10 @@ class Mpd
 		{
 
 			// Commands that do not return data.
-		/*case 'clearerror':
-			if( $this->sendCommand(strtolower($member)) and $this->untilOK() )
+		case 'consume':
+			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
-		break;*/
+		break;
 
 			// Commands that return one array of data.
 		case 'idle':
@@ -111,7 +125,7 @@ class Mpd
 			break;*/
 
 		default:
-			throw ProtocolException('Command not implemented (or do not have sufficient privileges (or do not exists)).');
+			throw new ProtocolException('Command not implemented (or do not have sufficient privileges (or do not exists)).');
 		}
 		return false;
 	}
@@ -188,7 +202,8 @@ class Mpd
 
 		if( $this->con ) while( ! feof($this->con) )
 		{
-			$l = fgets($this->con);
+			$l = trim(fgets($this->con));
+			if( substr($l,0,3)=='ACK' ) throw new CommandException($l);
 			if( substr($l,0,2)=='OK' ) return !($this->command_sent=false); // OK was found, return true and reset the command.
 			if( preg_match('/^([^:]*):[ \t]*(.*)$/',$l,$m) )
 			{
@@ -220,7 +235,11 @@ class Mpd
 		if( ! $this->command_sent ) return false;
 
 		if( $this->con ) while( ! feof($this->con) )
-			if( substr($line=trim(fgets($this->con)),0,2)=='OK' ) return !($this->command_sent=false);
+		{
+			$line = trim(fgets($this->con));
+			if( substr($line,0,3)=='ACK' ) throw new CommandException($line);
+			if( substr($line,0,2)=='OK' ) return !($this->command_sent=false);
+		}
 		return false;
 	}
 
@@ -229,6 +248,6 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-var_dump( $m->stats );
+var_dump( $m->consume('merde') );
 //while( $r = $m->playlistinfo ) var_dump( $r);
 
