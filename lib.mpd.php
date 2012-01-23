@@ -91,16 +91,15 @@ class Mpd
 
 			// Commands that return an list of array of data.
 		case 'playlistinfo':
-			$e = strtr(strtolower($member),array( // For each command, define the last key used to seperate the array of data
-				'playlistinfo' => 'id'));
+		case 'listplaylists':
 			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
 					or ($this->command_sent) )
-				and $this->extractPairs($o,$e) and assert('is_array($o)') )
+				and $this->extractPairs($o,true) and assert('is_array($o)') )
 				return $o;
 			break;
 
 		default:
-			throw ProtocolException('Command not implemented (or do not have sufficient privileges (or do not exists)).');
+			throw new ProtocolException('Command not implemented (or do not have sufficient privileges (or do not exists)).');
 		}
 		return false;
 	}
@@ -140,6 +139,14 @@ class Mpd
 		case 'shuffle':
 		case 'shuffle':
 		case 'swapid':
+		case 'load':
+		case 'playlistadd':
+		case 'playlistclear':
+		case 'playlistdelete':
+		case 'playlistmove':
+		case 'rename':
+		case 'rm':
+		case 'save':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
@@ -148,27 +155,22 @@ class Mpd
 		case 'idle':
 		case 'replay_gain_status':
 		case 'addid':
+		case 'listplaylist':
 			if( $this->sendCommand(strtolower($member),$args) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
 
-			// Commands that return a list of array of songs informations.
+			// Commands that return a list of array of data.
 		case 'playlistfind':
 		case 'playlistinfo':
 		case 'playlistsearch':
 		case 'plchanges':
 		case 'plchangesposid':
-			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
-					or ($this->command_sent) )
-				and $this->extractPairs($o,'id') and assert('is_array($o)') )
-				return $o;
-			break;
-
-			// Commands that return a list of array of data.
 		case 'playlistid':
-			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
+		case 'listplaylistinfo':
+			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member),$args))
 				or ($this->command_sent) )
-			and $this->extractPairs($o) and assert('is_array($o)') )
+			and $this->extractPairs($o,true) and assert('is_array($o)') )
 				return $o;
 			break;
 
@@ -236,33 +238,58 @@ class Mpd
 	 * Read lines from the stream and extract pairs of data.
 	 * Params:
 	 *   (out) array $pairs = Will contain the keys/values extract from the readed lines.
-	 *   string $group = Stop when a specific keys is found instaed of "OK".
+	 *   bool $group = Enable grouping result. Stop when a specific keys is found instaed of "OK".
 	 * Returns:
 	 *   true = Lines read and extracted successfully.
 	 */
-	private function extractPairs(&$pairs=null, $end='')
+	private function extractPairs(&$pairs=null, $group=false)
 	{
-		assert('is_string($end)');
+		static $old_line = null;
 
 		assert('$this->command_sent');
 		if( ! $this->command_sent ) return false;
 		$pairs = array();
 
-		if( $this->con ) while( ! feof($this->con) )
+		$founded_keys = array();
+		$group_key = $old_key = '';
+		if( $this->con ) while( $old_line or ! feof($this->con) )
 		{
-			$l = trim(fgets($this->con));
-			if( substr($l,0,3)=='ACK' ) throw new CommandException($l);
-			if( substr($l,0,2)=='OK' ) return !($this->command_sent=false); // OK was found, return true and reset the command.
-			if( preg_match('/^([^:]*):[ \t]*(.*)$/',$l,$m) )
+			if( $old_line )
+			{
+				// When grouping data.
+				// Restore the previous getted line.
+				$line = $old_line;
+				$old_line = null;
+			}
+			else
+				$line = trim(fgets($this->con));
+
+			if( substr($line,0,3)=='ACK' ) throw new CommandException($line);
+			elseif( preg_match('/^([^:]*):[ \t]*(.*)$/',$line,$m) )
 			{
 				list($k,$v) = array(strtolower($m[1]),$m[2]);
+
+				if( ! in_array($k,$founded_keys) ) array_push($founded_keys,$k);
+				elseif( $old_key != $k )
+				{
+					// Grouping the data
+					// Cut at this line, and keep it for the next call to this function.
+					$old_line = $line;
+					return true;
+				}
+				$old_key = $k;
+
 				if( isset($pairs[$k]) and is_array($pairs[$k]) )
 					array_push($pairs[$k], $v);
 				elseif( isset($pairs[$k]) )
 					$pairs[$k] = array($pairs[k], $v);
 				else
 					$pairs[$k] = $v;
-				if( $k==strtolower($end) ) return true; // $end was found, return true, but do not reset the command.
+			}
+			elseif( substr($line,0,2)=='OK' )
+			{
+				if( $pairs and $group ) { $old_line = $line; return true; } // Return the last group of data.
+				return !($this->command_sent=false); // Return true and reset the command.
 			}
 		}
 		return false;
@@ -271,7 +298,7 @@ class Mpd
 	/**
 	 * Read lines from the stream until "OK" is found.
 	 * Param:
-	 *   (out) string $line = Will contain the last line. Propably "OK".
+	 *   (out) string $line = Will contain the last line. Prorbably "OK".
 	 * Return:
 	 *   true = If "OK" was found.
 	 */
@@ -296,6 +323,6 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-//var_dump( $m->setvol(100) );
-while( $r = $m->playlistinfo ) var_dump( $r);
+var_dump( $m->listplaylists );
+//while( $r = $m->playlistinfo ) var_dump( $r);
 
