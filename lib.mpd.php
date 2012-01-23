@@ -64,12 +64,21 @@ class Mpd
 	function __get($member)
 	{
 		assert('is_string($member)');
+
+		$this->doOpen();
+
 		switch(strtolower($member))
 		{
 
+			// Special commands
+		case 'close': case 'kill':
+			if( $this->sendCommand(strtolower($member)) )
+				return true;
+			break;
+
 			// Commands that do not return data.
 		case 'clearerror': case 'next': case 'play': case 'playid': case 'previous': case 'stop':
-		case 'clear': case 'shuffle':
+		case 'clear': case 'shuffle': case 'ping':
 			if( $this->sendCommand(strtolower($member)) and $this->untilOK() )
 				return true;
 			break;
@@ -112,6 +121,9 @@ class Mpd
 		assert('is_array($args)');
 		assert('array_filter($args,"is_scalar")');
 		$args = array_map('strval',$args);
+
+		$this->doOpen();
+
 		switch(strtolower($member))
 		{
 
@@ -137,7 +149,7 @@ class Mpd
 			// XXX: NOT TESTED !
 		case 'sticker_get': case 'sticker_set': case 'sticker_delete': case 'sticker_list':
 		case 'sticker_find':
-			if( $this->sendCommand(strtolower(str_replace($member,array('_'=>' ')),$args) and $this->extractPairs($o) and assert('is_array($o)') )
+			if( $this->sendCommand(strtolower(str_replace($member,array('_'=>' '))),$args) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
 
@@ -172,7 +184,7 @@ class Mpd
 	// }}}
 	// {{{ doOpen, doClose
 
-	function doOpen()
+	private function doOpen()
 	{
 		if( ! is_resource($this->con) )
 		{
@@ -180,15 +192,15 @@ class Mpd
 				throw new RuntimeException($errmsg,$errno);
 			else
 				register_shutdown_function(array($this,'doClose'));
-		}
 
-		if( ($this->command_sent=true) and ! $this->untilOK($o) ) throw new ProtocolException;
-		if( preg_match('/([\d\.]+)$/', $o, $m) ) $this->server_version = $m[1];
+			if( ($this->command_sent=true) and ! $this->untilOK($o) ) throw new ProtocolException;
+			if( preg_match('/([\d\.]+)$/', $o, $m) ) $this->server_version = $m[1];
+		}
 	}
 
-	function doClose()
+	private function doClose()
 	{
-		if( ! is_resource($this->con) )
+		if( is_resource($this->con) )
 		{
 			$this->close;
 			$this->con = null;
@@ -315,6 +327,8 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-//var_dump( $m->listall );
-while( $r = $m->lsinfo ) var_dump( $r);
+var_dump( $m->status );
+var_dump( $m->close );
+var_dump( $m->status );
+//while( $r = $m->lsinfo ) var_dump( $r);
 
