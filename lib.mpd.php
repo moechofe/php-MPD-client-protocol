@@ -68,35 +68,37 @@ class Mpd
 		{
 
 			// Commands that do not return data.
-		case 'clearerror':
-		case 'next':
-		case 'play':
-		case 'playid':
-		case 'previous':
-		case 'stop':
-		case 'clear':
-		case 'shuffle':
+		case 'clearerror': case 'next': case 'play': case 'playid': case 'previous': case 'stop':
+		case 'clear': case 'shuffle':
 			if( $this->sendCommand(strtolower($member)) and $this->untilOK() )
 				return true;
 			break;
 
 			// Commands that return one array of data.
-		case 'status':
-		case 'currentsong':
-		case 'idle':
-		case 'stats':
+		case 'status': case 'currentsong': case 'idle': case 'stats': case 'listall':
+		case 'update': case 'rescan':
 			if( $this->sendCommand(strtolower($member)) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
 
 			// Commands that return an list of array of data.
-		case 'playlistinfo':
-		case 'listplaylists':
+		case 'playlistinfo': case 'listplaylists': case 'listallinfo':
 			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
-					or ($this->command_sent) )
+					or $this->command_sent )
 				and $this->extractPairs($o,true) and assert('is_array($o)') )
 				return $o;
 			break;
+
+			// Specific processing for lsinfo that remove listing playlists
+		case 'lsinfo':
+			if( (!$this->command_sent and $this->sendCommand(strtolower($member)))
+				or $this->command_sent )
+			{
+				while( $this->extractPairs($o,true) and assert('is_array($o)')
+					and ! $o=array_diff_key($o,array('playlist'=>true,'last-modified'=>true)) )
+					if( !$this->command_sent ) break;
+				return $o;
+			}
 
 		default:
 			throw new ProtocolException('Command not implemented (or do not have sufficient privileges (or do not exists)).');
@@ -114,65 +116,43 @@ class Mpd
 		{
 
 			// Commands that do not return data.
-		case 'consume':
-		case 'crossfade':
-		case 'mixrampdb':
-		case 'mixrampdelay':
-		case 'random':
-		case 'repeat':
-		case 'setvol':
-		case 'single':
-		case 'replay_gain_mode':
-		case 'pause':
-		case 'play':
-		case 'playid':
-		case 'seek':
-		case 'seekid':
-		case 'seekcur':
-		case 'add':
-		case 'delete':
-		case 'deleteid':
-		case 'move':
-		case 'moveid':
-		case 'prio':
-		case 'prioid':
-		case 'shuffle':
-		case 'shuffle':
-		case 'swapid':
-		case 'load':
-		case 'playlistadd':
-		case 'playlistclear':
-		case 'playlistdelete':
-		case 'playlistmove':
-		case 'rename':
-		case 'rm':
-		case 'save':
+		case 'consume': case 'crossfade': case 'mixrampdb': case 'mixrampdelay': case 'random':
+		case 'repeat': case 'setvol': case 'single': case 'replay_gain_mode': case 'pause': case 'play':
+		case 'playid': case 'seek': case 'seekid': case 'seekcur': case 'add': case 'delete':
+		case 'deleteid': case 'move': case 'moveid': case 'prio': case 'prioid': case 'shuffle':
+		case 'shuffle': case 'swapid': case 'load': case 'playlistadd': case 'playlistclear':
+		case 'playlistdelete': case 'playlistmove': case 'rename': case 'rm': case 'save':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
 
 			// Commands that return one array of data.
-		case 'idle':
-		case 'replay_gain_status':
-		case 'addid':
-		case 'listplaylist':
+		case 'idle': case 'replay_gain_status': case 'addid': case 'listplaylist': case 'count':
+		case 'list': case 'listall': case 'update': case 'rescan':
 			if( $this->sendCommand(strtolower($member),$args) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
 
 			// Commands that return a list of array of data.
-		case 'playlistfind':
-		case 'playlistinfo':
-		case 'playlistsearch':
-		case 'plchanges':
-		case 'plchangesposid':
-		case 'playlistid':
-		case 'listplaylistinfo':
+		case 'playlistfind': case 'playlistinfo': case 'playlistsearch': case 'plchanges':
+		case 'plchangesposid': case 'playlistid': case 'listplaylistinfo': case 'find':
+		case 'findadd': case 'listallinfo': case 'search':
 			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member),$args))
 				or ($this->command_sent) )
 			and $this->extractPairs($o,true) and assert('is_array($o)') )
 				return $o;
 			break;
+
+			// Specific processing for lsinfo that remove listing playlists
+		case 'lsinfo':
+			if( (!$this->command_sent and $this->sendCommand(strtolower($member),$args))
+				or $this->command_sent )
+			{
+				while( $this->extractPairs($o,true) and assert('is_array($o)')
+					and ! $o=array_diff_key($o,array('playlist'=>true,'last-modified'=>true)) )
+					if( !$this->command_sent ) break;
+				return $o;
+			}
 
 		default:
 			throw new ProtocolException('Command not implemented (or do not have sufficient privileges (or do not exists)).');
@@ -269,20 +249,24 @@ class Mpd
 			{
 				list($k,$v) = array(strtolower($m[1]),$m[2]);
 
-				if( ! in_array($k,$founded_keys) ) array_push($founded_keys,$k);
-				elseif( $old_key != $k )
+				if( $group )
 				{
-					// Grouping the data
-					// Cut at this line, and keep it for the next call to this function.
-					$old_line = $line;
-					return true;
+					if( ! in_array($k,$founded_keys) ) array_push($founded_keys,$k);
+					elseif( $old_key != $k )
+					{
+						// Grouping the data
+						// Cut at this line, and keep it for the next call to this function.
+						$old_line = $line;
+						return true;
+					}
+					else
+						$old_key = $k;
 				}
-				$old_key = $k;
 
 				if( isset($pairs[$k]) and is_array($pairs[$k]) )
 					array_push($pairs[$k], $v);
 				elseif( isset($pairs[$k]) )
-					$pairs[$k] = array($pairs[k], $v);
+					$pairs[$k] = array($pairs[$k], $v);
 				else
 					$pairs[$k] = $v;
 			}
@@ -323,6 +307,6 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-var_dump( $m->listplaylists );
-//while( $r = $m->playlistinfo ) var_dump( $r);
+//var_dump( $m->listall );
+while( $r = $m->lsinfo ) var_dump( $r);
 
