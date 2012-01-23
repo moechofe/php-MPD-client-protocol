@@ -93,12 +93,14 @@ class Mpd
 
 			// Commands that return one array of data.
 		case 'status': case 'currentsong': case 'idle': case 'stats': case 'listall':
-		case 'update': case 'rescan':
+		case 'update': case 'rescan': case 'tagtypes': case 'urlhandlers':
 			if( $this->sendCommand(strtolower($member)) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
 
-			// Commands that return an list of array of data.
+			// Commands that return a list of data one by one.
+		case 'listall': case 'commands': case 'notcommands':
+			// Commands that return a list of array of grouped data one by one.
 		case 'playlistinfo': case 'listplaylists': case 'listallinfo': case 'outputs':
 			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
 					or $this->command_sent )
@@ -148,8 +150,8 @@ class Mpd
 		break;
 
 			// Commands that return one array of data.
-		case 'idle': case 'replay_gain_status': case 'addid': case 'listplaylist': case 'count':
-		case 'list': case 'listall': case 'update': case 'rescan':
+		case 'idle': case 'replay_gain_status': case 'addid': case 'count': case 'listplaylist':
+		case 'update': case 'rescan':
 			if( $this->sendCommand(strtolower($member),$args) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
@@ -162,7 +164,9 @@ class Mpd
 				return $o;
 			break;
 
-			// Commands that return a list of array of data.
+			// Commands that return a list of data one by one.
+		case 'list': case 'listall':
+			// Commands that return a list of array of grouped data one by one.
 		case 'playlistfind': case 'playlistinfo': case 'playlistsearch': case 'plchanges':
 		case 'plchangesposid': case 'playlistid': case 'listplaylistinfo': case 'find':
 		case 'findadd': case 'listallinfo': case 'search':
@@ -337,5 +341,5 @@ $m = new Mpd('localhost','6600','');
 //var_dump( $m->status );
 //var_dump( $m->close );
 //var_dump( $m->status );
-while( $r = $m->outputs ) var_dump( $r);
+while( $r = $m->commands ) var_dump( $r);
 
