@@ -74,6 +74,8 @@ class Mpd
 		case 'playid':
 		case 'previous':
 		case 'stop':
+		case 'clear':
+		case 'shuffle':
 			if( $this->sendCommand(strtolower($member)) and $this->untilOK() )
 				return true;
 			break;
@@ -128,6 +130,16 @@ class Mpd
 		case 'seek':
 		case 'seekid':
 		case 'seekcur':
+		case 'add':
+		case 'delete':
+		case 'deleteid':
+		case 'move':
+		case 'moveid':
+		case 'prio':
+		case 'prioid':
+		case 'shuffle':
+		case 'shuffle':
+		case 'swapid':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
@@ -135,19 +147,30 @@ class Mpd
 			// Commands that return one array of data.
 		case 'idle':
 		case 'replay_gain_status':
+		case 'addid':
 			if( $this->sendCommand(strtolower($member),$args) and $this->extractPairs($o) and assert('is_array($o)') )
 				return $o;
 			break;
 
-			// Commands that return an list of array of data.
-		/*case 'playlistinfo':
-			$e = strtr(strtolower($member),array( // For each command, define the last key used to seperate the array of data
-				'playlistinfo' => 'id'));
+			// Commands that return a list of array of songs informations.
+		case 'playlistfind':
+		case 'playlistinfo':
+		case 'playlistsearch':
+		case 'plchanges':
+		case 'plchangesposid':
 			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
 					or ($this->command_sent) )
-				and $this->extractPairs($o,$e) and assert('is_array($o)') )
+				and $this->extractPairs($o,'id') and assert('is_array($o)') )
 				return $o;
-			break;*/
+			break;
+
+			// Commands that return a list of array of data.
+		case 'playlistid':
+			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
+				or ($this->command_sent) )
+			and $this->extractPairs($o) and assert('is_array($o)') )
+				return $o;
+			break;
 
 		default:
 			throw new ProtocolException('Command not implemented (or do not have sufficient privileges (or do not exists)).');
@@ -273,6 +296,6 @@ class Mpd
 
 $m = new Mpd('localhost','6600','');
 $m->doOpen();
-var_dump( $m->setvol(100) );
-//while( $r = $m->playlistinfo ) var_dump( $r);
+//var_dump( $m->setvol(100) );
+while( $r = $m->playlistinfo ) var_dump( $r);
 
