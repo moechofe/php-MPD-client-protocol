@@ -48,7 +48,7 @@ class Mpd
 	function getServerVersion() { return $this->server_version; }
 
 	// }}}
-	// {{{ __construct, __get, __set
+	// {{{ __construct, __destruct
 
 	function __construct($host='localhost', $port='6600', $pass='hackme')
 	{
@@ -60,6 +60,14 @@ class Mpd
 		$this->port = $port;
 		$this->pass = $pass;
 	}
+
+	function __destruct()
+	{
+		$this->doClose();
+	}
+
+	// }}}
+	// {{{ __get, __set
 
 	function __get($member)
 	{
@@ -91,7 +99,7 @@ class Mpd
 			break;
 
 			// Commands that return an list of array of data.
-		case 'playlistinfo': case 'listplaylists': case 'listallinfo':
+		case 'playlistinfo': case 'listplaylists': case 'listallinfo': case 'outputs':
 			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
 					or $this->command_sent )
 				and $this->extractPairs($o,true) and assert('is_array($o)') )
@@ -134,6 +142,7 @@ class Mpd
 		case 'deleteid': case 'move': case 'moveid': case 'prio': case 'prioid': case 'shuffle':
 		case 'shuffle': case 'swapid': case 'load': case 'playlistadd': case 'playlistclear':
 		case 'playlistdelete': case 'playlistmove': case 'rename': case 'rm': case 'save':
+		case 'disableoutput': case 'enableoutput':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
@@ -190,8 +199,6 @@ class Mpd
 		{
 			if( ! $this->con = fsockopen($this->host, $this->port, $errno, $errmsg) )
 				throw new RuntimeException($errmsg,$errno);
-			else
-				register_shutdown_function(array($this,'doClose'));
 
 			if( ($this->command_sent=true) and ! $this->untilOK($o) ) throw new ProtocolException;
 			if( preg_match('/([\d\.]+)$/', $o, $m) ) $this->server_version = $m[1];
@@ -326,9 +333,9 @@ class Mpd
 }
 
 $m = new Mpd('localhost','6600','');
-$m->doOpen();
-var_dump( $m->status );
-var_dump( $m->close );
-var_dump( $m->status );
-//while( $r = $m->lsinfo ) var_dump( $r);
+//$m->doOpen();
+//var_dump( $m->status );
+//var_dump( $m->close );
+//var_dump( $m->status );
+while( $r = $m->outputs ) var_dump( $r);
 
