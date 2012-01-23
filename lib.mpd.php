@@ -101,7 +101,7 @@ class Mpd
 			// Commands that return a list of data one by one.
 		case 'listall': case 'commands': case 'notcommands':
 			// Commands that return a list of array of grouped data one by one.
-		case 'playlistinfo': case 'listplaylists': case 'listallinfo': case 'outputs':
+		case 'playlistinfo': case 'listplaylists': case 'listallinfo': case 'outputs': case 'decoders':
 			if( ( (!$this->command_sent and $this->sendCommand(strtolower($member)))
 					or $this->command_sent )
 				and $this->extractPairs($o,true) and assert('is_array($o)') )
