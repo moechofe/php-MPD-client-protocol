@@ -69,6 +69,11 @@ class Mpd
 
 			// Commands that do not return data.
 		case 'clearerror':
+		case 'next':
+		case 'play':
+		case 'playid':
+		case 'previous':
+		case 'stop':
 			if( $this->sendCommand(strtolower($member)) and $this->untilOK() )
 				return true;
 			break;
@@ -117,6 +122,12 @@ class Mpd
 		case 'setvol':
 		case 'single':
 		case 'replay_gain_mode':
+		case 'pause':
+		case 'play':
+		case 'playid':
+		case 'seek':
+		case 'seekid':
+		case 'seekcur':
 			if( $this->sendCommand(strtolower($member),$args) and $this->untilOK() )
 				return true;
 		break;
