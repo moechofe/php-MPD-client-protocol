@@ -133,6 +133,14 @@ class Mpd
 				return $o;
 			break;
 
+			// Special processing for stickers commands.
+			// XXX: NOT TESTED !
+		case 'sticker_get': case 'sticker_set': case 'sticker_delete': case 'sticker_list':
+		case 'sticker_find':
+			if( $this->sendCommand(strtolower(str_replace($member,array('_'=>' ')),$args) and $this->extractPairs($o) and assert('is_array($o)') )
+				return $o;
+			break;
+
 			// Commands that return a list of array of data.
 		case 'playlistfind': case 'playlistinfo': case 'playlistsearch': case 'plchanges':
 		case 'plchangesposid': case 'playlistid': case 'listplaylistinfo': case 'find':
