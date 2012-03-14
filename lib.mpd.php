@@ -77,7 +77,6 @@ class Mpd
 
 		switch(strtolower($member))
 		{
-
 			// Special commands
 		case 'close': case 'kill':
 			if( $this->sendCommand(strtolower($member)) )
@@ -235,7 +234,7 @@ class Mpd
 		if( $this->con )
 		{
 			$cmd = array_reduce($args,function($a,$b){
-				if( strpos($b,' ')!==false ) return trim(sprintf('%s "%s"',$a,str_replace('"','\"',$a)));
+				if( strpos($b,' ')!==false ) return trim(sprintf('%s "%s"',$a,str_replace('"','\"',$b)));
 				return trim("$a $b");
 			},'') . "\n";
 			for( $o=0,$l=strlen($cmd); $o<$l; $o+=$w )
@@ -282,8 +281,9 @@ class Mpd
 
 				if( $group )
 				{
-					if( ! in_array($k,$founded_keys) ) array_push($founded_keys,$k);
-					elseif( $old_key != $k )
+					if( ! in_array($k,$founded_keys) ) { array_push($founded_keys,$k); $old_key = $k; }
+					elseif( $old_key == $k ) null;
+					elseif( count($founded_keys)>1 )
 					{
 						// Grouping the data
 						// Cut at this line, and keep it for the next call to this function.
@@ -330,16 +330,9 @@ class Mpd
 			if( substr($line,0,3)=='ACK' ) throw new CommandException($line);
 			if( substr($line,0,2)=='OK' ) return !($this->command_sent=false);
 		}
-		return false;
+		return ($this->command_sent=false);
 	}
 
 	// }}}
 }
-
-$m = new Mpd('localhost','6600','');
-//$m->doOpen();
-//var_dump( $m->status );
-//var_dump( $m->close );
-//var_dump( $m->status );
-while( $r = $m->commands ) var_dump( $r);
 
